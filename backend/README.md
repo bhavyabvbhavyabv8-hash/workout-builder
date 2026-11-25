@@ -93,6 +93,7 @@ Validation errors return `400`; invalid credentials/tokens return `401`; cross-u
 | `PATCH` | `/api/workouts/:workoutId/exercises/:exerciseId` | Yes | Update an exercise entry. |
 | `DELETE` | `/api/workouts/:workoutId/exercises/:exerciseId` | Yes | Remove an exercise entry. |
 | `GET` | `/api/workouts/stats` | Yes | Completed workout counts, weekly frequency, completed sets, and volume. |
+| `GET` | `/api/workouts/progress` | Yes | Per-exercise weight, reps, volume, and set history from completed workouts. |
 | `POST` | `/api/workouts/sessions` | Yes | Start a session from a template or a custom name. |
 | `GET` | `/api/workouts/sessions?page=1&limit=20` | Yes | Paginated session list, including in-progress sessions. |
 | `GET` | `/api/workouts/sessions/history?page=1&limit=20` | Yes | Paginated completed workout history. |

@@ -134,6 +134,74 @@ router.get(
 );
 
 router.get(
+  '/progress',
+  asyncHandler(async (req, res) => {
+    const performance = await WorkoutSession.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(String(req.authUser._id)),
+          completedAt: { $ne: null }
+        }
+      },
+      {
+        $lookup: {
+          from: ExerciseSet.collection.name,
+          localField: '_id',
+          foreignField: 'session',
+          as: 'loggedSets'
+        }
+      },
+      { $unwind: '$loggedSets' },
+      {
+        $group: {
+          _id: {
+            exercise: '$loggedSets.exercise',
+            name: '$loggedSets.exerciseName',
+            date: {
+              $dateToString: {
+                format: '%Y-%m-%d',
+                date: '$startedAt',
+                timezone: 'UTC'
+              }
+            }
+          },
+          maxWeight: { $max: '$loggedSets.weight' },
+          maxReps: { $max: '$loggedSets.reps' },
+          volume: { $sum: { $multiply: ['$loggedSets.weight', '$loggedSets.reps'] } },
+          sets: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.date': 1 } },
+      {
+        $group: {
+          _id: { exercise: '$_id.exercise', name: '$_id.name' },
+          history: {
+            $push: {
+              date: '$_id.date',
+              maxWeight: '$maxWeight',
+              maxReps: '$maxReps',
+              volume: '$volume',
+              sets: '$sets'
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          exerciseId: { $toString: '$_id.exercise' },
+          exerciseName: '$_id.name',
+          history: 1
+        }
+      },
+      { $sort: { exerciseName: 1 } }
+    ]);
+
+    res.json({ data: { exercises: performance } });
+  })
+);
+
+router.get(
   '/',
   asyncHandler(async (req, res) => {
     const workouts = await WorkoutTemplate.find({ user: req.authUser._id })

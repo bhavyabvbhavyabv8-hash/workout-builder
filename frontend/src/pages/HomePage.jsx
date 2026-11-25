@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import SectionHeading from '../components/SectionHeading.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const features = [
   {
@@ -56,6 +57,9 @@ function WorkoutPreview() {
 }
 
 export default function HomePage() {
+  const { status } = useAuth();
+  const authenticated = status === 'authenticated';
+
   return (
     <>
       <section className="hero page-width">
@@ -66,7 +70,9 @@ export default function HomePage() {
             A clearer way to plan your training, log your lifts, and see the strength you build over time.
           </p>
           <div className="hero-actions">
-            <Link className="button" to="/register">Start building <span aria-hidden="true">↗</span></Link>
+            <Link className="button" to={authenticated ? '/dashboard' : '/register'}>
+              {authenticated ? 'Open dashboard' : 'Start building'} <span aria-hidden="true">↗</span>
+            </Link>
             <Link className="text-link" to="/workouts">Explore the app <span aria-hidden="true">→</span></Link>
           </div>
           <div className="hero-footnote"><span aria-hidden="true">✳</span> CONSISTENCY OVER PERFECTION. ALWAYS.</div>
@@ -108,7 +114,9 @@ export default function HomePage() {
           <span className="eyebrow">YOUR NEXT REP STARTS HERE</span>
           <h2>Progress is a practice.</h2>
         </div>
-        <Link className="button" to="/register">Build your foundation <span aria-hidden="true">↗</span></Link>
+        <Link className="button" to={authenticated ? '/workouts/new' : '/register'}>
+          {authenticated ? 'Create a workout' : 'Build your foundation'} <span aria-hidden="true">↗</span>
+        </Link>
       </section>
     </>
   );

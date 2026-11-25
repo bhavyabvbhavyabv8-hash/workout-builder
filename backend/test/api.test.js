@@ -282,6 +282,14 @@ test('authentication, account security, workout CRUD, history, and user isolatio
   assert.equal(stats.payload.data.totalVolume, 480);
   assert.equal(stats.payload.data.weeklyFrequency.length, 8);
 
+  const performance = await request('GET', '/api/workouts/progress', {
+    token: ownerAuth.token
+  });
+  assert.equal(performance.payload.data.exercises.length, 1);
+  assert.equal(performance.payload.data.exercises[0].exerciseName, 'Bench press');
+  assert.equal(performance.payload.data.exercises[0].history[0].maxWeight, 60);
+  assert.equal(performance.payload.data.exercises[0].history[0].maxReps, 8);
+
   const sessionSetAfterCompletion = await request(
     'POST',
     `/api/workouts/sessions/${sessionId}/sets`,
