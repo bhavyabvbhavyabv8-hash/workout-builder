@@ -4,6 +4,7 @@ import { connectDatabase } from '../config/database.js';
 import Exercise from '../models/Exercise.js';
 import ExerciseSet from '../models/ExerciseSet.js';
 import ProgressRecord from '../models/ProgressRecord.js';
+import PersonalGoal from '../models/PersonalGoal.js';
 import RevokedToken from '../models/RevokedToken.js';
 import User from '../models/User.js';
 import WorkoutSession from '../models/WorkoutSession.js';
@@ -23,6 +24,7 @@ try {
       WorkoutSession,
       ExerciseSet,
       ProgressRecord,
+      PersonalGoal,
       RevokedToken
     ].map((model) => model.createIndexes())
   );

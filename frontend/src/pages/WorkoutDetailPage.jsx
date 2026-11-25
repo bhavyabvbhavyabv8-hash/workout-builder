@@ -12,6 +12,7 @@ export default function WorkoutDetailPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -57,6 +58,20 @@ export default function WorkoutDetailPage() {
     }
   }
 
+  async function saveAsTemplate() {
+    setError('');
+    setNotice('');
+    setBusy('template');
+    try {
+      await workoutApi.saveAsTemplate(workoutId);
+      setNotice('Saved to your personal templates.');
+    } catch (requestError) {
+      setError(formatApiError(requestError));
+    } finally {
+      setBusy('');
+    }
+  }
+
   if (loading) return <LoadingState message="Loading workout…" />;
   if (!workout) {
     return <section className="app-page page-width"><StatusMessage>{error || 'Workout not found.'}</StatusMessage><Link className="text-link" to="/workouts">Back to workouts <span aria-hidden="true">→</span></Link></section>;
@@ -72,15 +87,17 @@ export default function WorkoutDetailPage() {
         </div>
         <div className="heading-actions">
           <Link className="button button-outline" to={`/workouts/${workoutId}/edit`}>Edit workout</Link>
+          <button className="button button-outline" type="button" onClick={saveAsTemplate} disabled={busy !== ''}>{busy === 'template' ? 'Saving template…' : 'Save as template'}</button>
           <button className="button" type="button" onClick={startWorkout} disabled={busy !== '' || workout.exercises.length === 0}>
             {busy === 'start' ? 'Starting…' : workout.exercises.length ? 'Start workout' : 'Add exercises first'} <span aria-hidden="true">↗</span>
           </button>
         </div>
       </div>
       {location.state?.notice && <StatusMessage kind="success">{location.state.notice}</StatusMessage>}
+      <StatusMessage kind="success">{notice}</StatusMessage>
       <StatusMessage>{error}</StatusMessage>
 
-      <div className="detail-meta"><span>{workout.exercises.length} exercises</span><span>Updated {new Date(workout.updatedAt).toLocaleDateString()}</span></div>
+      <div className="detail-meta"><span>{workout.category} · {workout.difficulty} · {workout.durationMinutes} min · {workout.exercises.length} exercises</span><span>Updated {new Date(workout.updatedAt).toLocaleDateString()}</span></div>
       {workout.exercises.length ? (
         <div className="exercise-detail-list">
           {workout.exercises.map((exercise, index) => (
@@ -95,7 +112,7 @@ export default function WorkoutDetailPage() {
         <div className="empty-state"><h2>This workout has no exercises yet</h2><p>Add movements before starting a session.</p><Link className="text-link" to={`/workouts/${workoutId}/edit`}>Edit workout <span aria-hidden="true">→</span></Link></div>
       )}
       <div className="detail-footer">
-        <Link className="text-link" to="/workouts">← All workouts</Link>
+        <div className="detail-footer-links"><Link className="text-link" to="/workouts">← All workouts</Link><Link className="text-link" to="/templates">Templates <span aria-hidden="true">→</span></Link></div>
         <button className="subtle-link danger-link" type="button" onClick={deleteWorkout} disabled={busy !== ''}>{busy === 'delete' ? 'Deleting…' : 'Delete workout'}</button>
       </div>
     </section>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import LoadingState from '../components/LoadingState.jsx';
+import PersonalGoalCard from '../components/PersonalGoalCard.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
-import { formatApiError, sessionApi, workoutApi } from '../services/api.js';
+import { formatApiError, sessionApi, templateApi, workoutApi } from '../services/api.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import formatDuration from '../utils/formatDuration.js';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -17,12 +19,18 @@ export default function DashboardPage() {
     setError('');
     setLoading(true);
     try {
-      const [stats, workouts, sessions] = await Promise.all([
+      const [stats, workouts, sessions, templates] = await Promise.all([
         workoutApi.stats(),
         workoutApi.list(),
-        sessionApi.list('?page=1&limit=5')
+        sessionApi.list('?page=1&limit=5'),
+        templateApi.list()
       ]);
-      setData({ stats, workouts: workouts.workouts, sessions: sessions.sessions });
+      setData({
+        stats,
+        workouts: workouts.workouts,
+        sessions: sessions.sessions,
+        templates: templates.templates.filter((template) => template.isBuiltIn)
+      });
     } catch (requestError) {
       setError(formatApiError(requestError));
     } finally {
@@ -58,24 +66,55 @@ export default function DashboardPage() {
     );
   }
 
+  const todayKey = new Date().toDateString();
+  const todaySession = data.sessions.find(
+    (session) => new Date(session.startedAt).toDateString() === todayKey
+  );
+  const suggestedWorkout = data.workouts[0];
+
   return (
     <section className="app-page page-width">
       <div className="app-page-heading">
         <div>
           <span className="eyebrow">YOUR TRAINING SPACE</span>
           <h1>Welcome back, <span>{user?.name?.split(' ')[0] || 'athlete'}.</span></h1>
-          <p>Pick up where you left off or start a fresh session.</p>
+          <p>Pick up where you left off and build on the training you have logged.</p>
         </div>
-        <Link className="button" to="/workouts/new">Create workout <span aria-hidden="true">↗</span></Link>
+        <div className="heading-actions">
+          <Link className="button button-outline" to="/templates">Browse templates</Link>
+          <Link className="button" to="/workouts/new">Create workout <span aria-hidden="true">↗</span></Link>
+        </div>
       </div>
       <StatusMessage>{error}</StatusMessage>
 
       <div className="metric-grid">
         <article className="metric-card"><span>COMPLETED WORKOUTS</span><strong>{data?.stats.completedWorkouts ?? 0}</strong></article>
         <article className="metric-card"><span>THIS WEEK</span><strong>{data?.stats.workoutsThisWeek ?? 0}</strong></article>
+        <article className="metric-card"><span>DAILY STREAK</span><strong>{data?.stats.currentStreakDays ?? 0}</strong><small>consecutive days</small></article>
+        <article className="metric-card"><span>TOTAL DURATION</span><strong>{formatDuration(data?.stats.totalDurationSeconds ?? 0)}</strong><small>completed sessions</small></article>
         <article className="metric-card"><span>SETS LOGGED</span><strong>{data?.stats.totalSets ?? 0}</strong></article>
+        <article className="metric-card"><span>REPETITIONS</span><strong>{data?.stats.totalReps ?? 0}</strong></article>
         <article className="metric-card"><span>TOTAL VOLUME</span><strong>{Number(data?.stats.totalVolume ?? 0).toLocaleString()}</strong><small>weight × reps</small></article>
+        <article className="metric-card"><span>COMPLETION RATE</span><strong>{data?.stats.completionRatePercent ?? 0}%</strong><small>of started sessions</small></article>
       </div>
+
+      <section className="today-workout-card">
+        <div>
+          <span className="eyebrow">TODAY'S WORKOUT</span>
+          <h2>{todaySession ? todaySession.name : suggestedWorkout?.name || 'Choose a workout plan'}</h2>
+          <p>{todaySession
+            ? todaySession.completedAt ? 'A session completed today.' : 'You have an active session ready to continue.'
+            : suggestedWorkout ? `${suggestedWorkout.exercises.length} exercises · ${suggestedWorkout.durationMinutes} min`
+              : 'Create a workout or start from one of the reusable templates.'}</p>
+        </div>
+        {todaySession ? (
+          <Link className="button" to={`/sessions/${todaySession._id}`}>{todaySession.completedAt ? 'Review session' : 'Continue session'} <span aria-hidden="true">↗</span></Link>
+        ) : suggestedWorkout ? (
+          <button className="button" type="button" onClick={() => startWorkout(suggestedWorkout._id)} disabled={starting !== ''}>
+            {starting === suggestedWorkout._id ? 'Starting…' : 'Start today’s workout'} <span aria-hidden="true">↗</span>
+          </button>
+        ) : <Link className="button" to="/templates">Browse templates <span aria-hidden="true">↗</span></Link>}
+      </section>
 
       <div className="dashboard-columns">
         <section className="panel-section">
@@ -122,6 +161,35 @@ export default function DashboardPage() {
           )}
         </section>
       </div>
+
+      <div className="dashboard-lower-grid">
+        <PersonalGoalCard />
+        <section className="panel-section record-section">
+          <div className="section-title-row"><div><span className="eyebrow">PERSONAL RECORDS</span><h2>Best logged efforts</h2></div><Link className="text-link" to="/progress">Progress <span aria-hidden="true">→</span></Link></div>
+          {data.stats.personalRecords.length ? (
+            <div className="record-list">
+              {data.stats.personalRecords.slice(0, 5).map((record) => (
+                <article className="record-row" key={record.exerciseId}>
+                  <strong>{record.exerciseName}</strong>
+                  <span>{record.maxWeight} weight</span>
+                  <span>{record.maxReps} reps</span>
+                </article>
+              ))}
+            </div>
+          ) : <div className="empty-state"><strong>No personal records yet</strong><p>Complete sessions with logged sets to see your best efforts here.</p></div>}
+        </section>
+      </div>
+
+      <section className="dashboard-template-strip">
+        <div className="section-title-row"><div><span className="eyebrow">QUICK START</span><h2>Starter templates</h2></div><Link className="text-link" to="/templates">All templates <span aria-hidden="true">→</span></Link></div>
+        <div className="dashboard-template-links">
+          {data.templates.slice(0, 4).map((template) => (
+            <Link className="dashboard-template-link" to="/templates" key={template._id}>
+              <span>{template.category}</span><strong>{template.name}</strong><small>{template.durationMinutes} min · {template.exercises.length} exercises</small>
+            </Link>
+          ))}
+        </div>
+      </section>
     </section>
   );
 }

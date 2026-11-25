@@ -2,6 +2,8 @@
 
 Express REST API for the Workout Builder application. MongoDB data is accessed through Mongoose. All user-specific routes require a valid bearer JWT and scope reads/writes to the authenticated user.
 
+At startup the API seeds 18 catalog exercises and six read-only starter templates if absent, and migrates legacy workout records in place. Custom exercises, personal templates, goals, plans, and sessions remain user-scoped in MongoDB.
+
 ## Setup
 
 Requirements: Node.js 20.19+ or 22.12+, npm 10+, and MongoDB.
@@ -84,16 +86,29 @@ Validation errors return `400`; invalid credentials/tokens return `401`; cross-u
 | `PATCH` | `/api/account` | Yes | Update `name` and/or `email`. |
 | `PATCH` | `/api/account/password` | Yes | Verify current password and change it; invalidates all existing tokens. |
 | `DELETE` | `/api/account` | Yes | Delete account and associated workout data; requires `{ "password": "..." }`. |
-| `GET` | `/api/workouts` | Yes | List own workout templates. |
-| `POST` | `/api/workouts` | Yes | Create a workout template. |
-| `GET` | `/api/workouts/:id` | Yes | Get one own workout. |
-| `PATCH` | `/api/workouts/:id` | Yes | Update name, description, and/or replace exercises. |
-| `DELETE` | `/api/workouts/:id` | Yes | Delete a template; sessions keep their copied plan and history. |
+| `GET` | `/api/workouts` | Yes | List own workout plans. |
+| `POST` | `/api/workouts` | Yes | Create a workout plan with category, difficulty, duration, and exercises. |
+| `GET` | `/api/workouts/:id` | Yes | Get one own workout plan. |
+| `PATCH` | `/api/workouts/:id` | Yes | Update workout metadata and/or replace exercises. |
+| `DELETE` | `/api/workouts/:id` | Yes | Delete a workout; sessions keep their copied plan and history. |
+| `GET` | `/api/workouts/exercises?q=&muscleGroup=&equipment=&difficulty=&page=1&limit=12` | Yes | Search/filter the paginated shared and own exercise library. |
+| `POST` | `/api/workouts/exercises` | Yes | Add a custom exercise to the authenticated user's library. |
+| `GET` | `/api/workouts/templates` | Yes | List built-in and own reusable templates. |
+| `POST` | `/api/workouts/templates` | Yes | Create a personal template. |
+| `GET` | `/api/workouts/templates/:id` | Yes | Get an available built-in or own template. |
+| `PATCH` | `/api/workouts/templates/:id` | Yes | Edit an own personal template. |
+| `DELETE` | `/api/workouts/templates/:id` | Yes | Delete an own personal template. |
+| `POST` | `/api/workouts/templates/:id/use` | Yes | Create a workout plan from an available template. |
+| `POST` | `/api/workouts/:id/template` | Yes | Save an existing workout plan as a personal template. |
 | `POST` | `/api/workouts/:workoutId/exercises` | Yes | Add an exercise to a template. |
 | `PATCH` | `/api/workouts/:workoutId/exercises/:exerciseId` | Yes | Update an exercise entry. |
 | `DELETE` | `/api/workouts/:workoutId/exercises/:exerciseId` | Yes | Remove an exercise entry. |
-| `GET` | `/api/workouts/stats` | Yes | Completed workout counts, weekly frequency, completed sets, and volume. |
-| `GET` | `/api/workouts/progress` | Yes | Per-exercise weight, reps, volume, and set history from completed workouts. |
+| `GET` | `/api/workouts/stats` | Yes | Completion counts/rate, weekly frequency, duration, sets, reps, volume, streak, and personal records. |
+| `GET` | `/api/workouts/progress?from=YYYY-MM-DD&to=YYYY-MM-DD&exerciseId=<id>` | Yes | Filtered per-exercise weight, reps, volume, and set history from completed workouts. |
+| `GET` | `/api/goals` | Yes | Get the user's weekly and total workout targets with actual progress. |
+| `POST` | `/api/goals` | Yes | Create the user's targets. |
+| `PATCH` | `/api/goals` | Yes | Update one or both workout targets. |
+| `DELETE` | `/api/goals` | Yes | Delete the user's targets. |
 | `POST` | `/api/workouts/sessions` | Yes | Start a session from a template or a custom name. |
 | `GET` | `/api/workouts/sessions?page=1&limit=20` | Yes | Paginated session list, including in-progress sessions. |
 | `GET` | `/api/workouts/sessions/history?page=1&limit=20` | Yes | Paginated completed workout history. |
@@ -177,4 +192,4 @@ Complete it with `PATCH /api/workouts/sessions/:sessionId/complete`. Stats aggre
 npm test
 ```
 
-The Node test runner uses `mongodb-memory-server` in replica-set mode to test registration, login, token revocation, account updates/deletion, workout CRUD, history, stats, validation, and cross-user authorization without touching a configured database.
+The Node test runner uses `mongodb-memory-server` in replica-set mode to test registration, login, token revocation, account updates/deletion, workout and template CRUD, exercise filtering, goal progress, history, duration/PR statistics, validation, legacy workout migration, and cross-user authorization without touching a configured database.

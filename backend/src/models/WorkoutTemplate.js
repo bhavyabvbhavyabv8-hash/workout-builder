@@ -51,14 +51,33 @@ templateExerciseSchema.pre('validate', async function keepLegacyTargets() {
 
 const workoutTemplateSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     name: { type: String, required: true, trim: true, maxlength: 120 },
     description: { type: String, trim: true, maxlength: 1000 },
+    category: {
+      type: String,
+      enum: ['strength', 'hypertrophy', 'conditioning', 'mobility', 'custom'],
+      default: 'custom'
+    },
+    difficulty: {
+      type: String,
+      enum: ['beginner', 'intermediate', 'advanced'],
+      default: 'intermediate'
+    },
+    durationMinutes: { type: Number, min: 1, max: 600, default: 45 },
+    isTemplate: { type: Boolean, default: false },
+    isBuiltIn: { type: Boolean, default: false },
+    systemKey: { type: String, trim: true, maxlength: 80 },
     exercises: { type: [templateExerciseSchema], default: [] }
   },
   { timestamps: true }
 );
 
 workoutTemplateSchema.index({ user: 1, name: 1 });
+workoutTemplateSchema.index(
+  { systemKey: 1 },
+  { unique: true, partialFilterExpression: { isBuiltIn: true } }
+);
+workoutTemplateSchema.index({ user: 1, updatedAt: -1 });
 
 export default mongoose.model('WorkoutTemplate', workoutTemplateSchema);

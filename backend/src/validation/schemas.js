@@ -10,6 +10,15 @@ const passwordSchema = z
   .regex(/[0-9]/, 'Password must include a number.');
 const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i, 'Must be a valid ID.');
 const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full-body'];
+const workoutCategories = ['strength', 'hypertrophy', 'conditioning', 'mobility', 'custom'];
+const difficulties = ['beginner', 'intermediate', 'advanced'];
+
+function isValidDateOnly(value) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+}
+
+const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isValidDateOnly, 'Must be a valid calendar date.');
 
 export const workoutExerciseSchema = z
   .object({
@@ -69,6 +78,9 @@ export const workoutCreateSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
     description: z.string().trim().max(1000).optional(),
+    category: z.enum(workoutCategories).optional(),
+    difficulty: z.enum(difficulties).optional(),
+    durationMinutes: z.number().int().min(1).max(600).optional(),
     exercises: z.array(workoutExerciseSchema).max(100).default([])
   })
   .strict();
@@ -77,6 +89,9 @@ export const workoutUpdateSchema = z
   .object({
     name: z.string().trim().min(1).max(120).optional(),
     description: z.string().trim().max(1000).optional(),
+    category: z.enum(workoutCategories).optional(),
+    difficulty: z.enum(difficulties).optional(),
+    durationMinutes: z.number().int().min(1).max(600).optional(),
     exercises: z.array(workoutExerciseSchema).max(100).optional()
   })
   .strict()
@@ -128,5 +143,52 @@ export const historyQuerySchema = z
   .object({
     page: z.coerce.number().int().min(1).max(10000).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(20)
+  })
+  .strict();
+
+export const exerciseSearchSchema = z
+  .object({
+    q: z.string().trim().max(100).optional(),
+    muscleGroup: z.enum(muscleGroups).optional(),
+    equipment: z.string().trim().max(80).optional(),
+    difficulty: z.enum(difficulties).optional(),
+    page: z.coerce.number().int().min(1).max(10000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20)
+  })
+  .strict();
+
+export const exerciseCreateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    muscleGroup: z.enum(muscleGroups),
+    targetMuscles: z.array(z.string().trim().min(1).max(40)).max(12).default([]),
+    equipment: z.string().trim().max(80).optional(),
+    difficulty: z.enum(difficulties).default('intermediate'),
+    instructions: z.string().trim().max(2000).optional()
+  })
+  .strict();
+
+export const progressQuerySchema = z
+  .object({
+    from: dateOnlySchema.optional(),
+    to: dateOnlySchema.optional(),
+    exerciseId: objectIdSchema.optional()
+  })
+  .strict()
+  .refine((value) => !value.from || !value.to || value.from <= value.to, {
+    path: ['to'],
+    message: 'End date must be on or after the start date.'
+  });
+
+export const personalGoalSchema = z
+  .object({
+    weeklyWorkoutTarget: z.number().int().min(1).max(14),
+    totalWorkoutTarget: z.number().int().min(1).max(10000)
+  })
+  .strict();
+
+export const saveAsTemplateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional()
   })
   .strict();

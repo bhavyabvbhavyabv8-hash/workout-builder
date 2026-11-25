@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import LoadingState from '../components/LoadingState.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { formatApiError, workoutApi } from '../services/api.js';
 
 export default function WorkoutBuilderPage() {
+  const location = useLocation();
   const [workouts, setWorkouts] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -51,8 +52,13 @@ export default function WorkoutBuilderPage() {
           <h1>Your training,<br /><span>your blueprint.</span></h1>
           <p>Create reusable plans and keep your exercise targets together.</p>
         </div>
-        <Link className="button" to="/workouts/new">Create workout <span aria-hidden="true">↗</span></Link>
+        <div className="heading-actions">
+          <Link className="button button-outline" to="/exercises">Exercise library</Link>
+          <Link className="button button-outline" to="/templates">Templates</Link>
+          <Link className="button" to="/workouts/new">Create workout <span aria-hidden="true">↗</span></Link>
+        </div>
       </div>
+      {location.state?.notice && <StatusMessage kind="success">{location.state.notice}</StatusMessage>}
       <StatusMessage>{error}</StatusMessage>
       {workouts.length ? (
         <div className="workout-grid">
@@ -61,6 +67,7 @@ export default function WorkoutBuilderPage() {
               <span className="tile-index">{String(workout.exercises.length).padStart(2, '0')} EXERCISES</span>
               <h2><Link to={`/workouts/${workout._id}`}>{workout.name}</Link></h2>
               <p>{workout.description || 'A plan ready for your next session.'}</p>
+              <span className="workout-card-meta">{workout.category} · {workout.difficulty} · {workout.durationMinutes} min</span>
               <div className="tile-exercises">
                 {workout.exercises.slice(0, 3).map((exercise) => (
                   <span key={exercise._id}>{exercise.name}</span>

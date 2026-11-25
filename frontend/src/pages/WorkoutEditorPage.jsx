@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState.jsx';
+import ExerciseBrowser from '../components/ExerciseBrowser.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
-import { formatApiError, workoutApi } from '../services/api.js';
+import { formatApiError, templateApi, workoutApi } from '../services/api.js';
 
 const emptyExercise = () => ({
   name: '',
   muscleGroup: 'chest',
+  exerciseId: '',
   sets: 3,
   repetitions: 10,
   weight: 0,
@@ -17,6 +19,7 @@ const emptyExercise = () => ({
 
 function normalizeExercise(exercise) {
   const parsed = {
+    ...(exercise.exerciseId ? { exerciseId: exercise.exerciseId } : {}),
     name: exercise.name.trim(),
     muscleGroup: exercise.muscleGroup,
     sets: Number(exercise.sets),
@@ -29,28 +32,43 @@ function normalizeExercise(exercise) {
   return parsed;
 }
 
-export default function WorkoutEditorPage() {
-  const { workoutId } = useParams();
+export default function WorkoutEditorPage({ mode = 'workout' }) {
+  const { workoutId, templateId } = useParams();
   const navigate = useNavigate();
-  const editing = Boolean(workoutId);
-  const [form, setForm] = useState({ name: '', description: '', exercises: [emptyExercise()] });
+  const recordId = mode === 'template' ? templateId : workoutId;
+  const editing = Boolean(recordId);
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    category: 'custom',
+    difficulty: 'intermediate',
+    durationMinutes: 45,
+    exercises: []
+  });
   const [loading, setLoading] = useState(editing);
   const [loadedWorkout, setLoadedWorkout] = useState(!editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!editing) return undefined;
     let active = true;
-    workoutApi.get(workoutId)
-      .then(({ workout }) => {
+    const request = mode === 'template' ? templateApi.get(recordId) : workoutApi.get(recordId);
+    request
+      .then((result) => {
         if (!active) return;
+        const workout = result.workout || result.template;
         setForm({
           name: workout.name,
           description: workout.description || '',
+          category: workout.category || 'custom',
+          difficulty: workout.difficulty || 'intermediate',
+          durationMinutes: workout.durationMinutes || 45,
           exercises: workout.exercises.map((exercise) => ({
             name: exercise.name,
             muscleGroup: exercise.muscleGroup,
+            exerciseId: exercise.exercise || '',
             sets: exercise.sets,
             repetitions: exercise.repetitions,
             weight: exercise.weight,
@@ -70,7 +88,7 @@ export default function WorkoutEditorPage() {
     return () => {
       active = false;
     };
-  }, [editing, workoutId]);
+  }, [editing, mode, recordId]);
 
   function updateWorkoutField(event) {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -80,9 +98,36 @@ export default function WorkoutEditorPage() {
     setForm((current) => ({
       ...current,
       exercises: current.exercises.map((exercise, exerciseIndex) =>
-        exerciseIndex === index ? { ...exercise, [field]: value } : exercise
+        exerciseIndex === index
+          ? {
+              ...exercise,
+              [field]: value,
+              ...(field === 'name' || field === 'muscleGroup' ? { exerciseId: '' } : {})
+            }
+          : exercise
       )
     }));
+  }
+
+  function moveExercise(index, direction) {
+    setForm((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.exercises.length) return current;
+      const exercises = [...current.exercises];
+      [exercises[index], exercises[target]] = [exercises[target], exercises[index]];
+      return { ...current, exercises };
+    });
+  }
+
+  function selectLibraryExercise(exercise) {
+    setForm((current) => ({
+      ...current,
+      exercises: [
+        ...current.exercises.filter((entry) => entry.name.trim()),
+        { ...emptyExercise(), name: exercise.name, muscleGroup: exercise.muscleGroup, exerciseId: exercise._id }
+      ]
+    }));
+    setPickerOpen(false);
   }
 
   function addExercise() {
@@ -103,12 +148,25 @@ export default function WorkoutEditorPage() {
     const body = {
       name: form.name.trim(),
       description: form.description.trim(),
+      category: form.category,
+      difficulty: form.difficulty,
+      durationMinutes: Number(form.durationMinutes),
       exercises: form.exercises.map(normalizeExercise)
     };
 
     try {
+      if (mode === 'template') {
+        const result = editing
+          ? await templateApi.update(recordId, body)
+          : await templateApi.create(body);
+        navigate('/templates', {
+          replace: true,
+          state: { notice: editing ? 'Template changes saved.' : 'Template created.' }
+        });
+        return result;
+      }
       const result = editing
-        ? await workoutApi.update(workoutId, body)
+        ? await workoutApi.update(recordId, body)
         : await workoutApi.create(body);
       navigate(`/workouts/${result.workout._id}`, {
         replace: true,
@@ -125,8 +183,8 @@ export default function WorkoutEditorPage() {
   if (editing && !loadedWorkout) {
     return (
       <section className="app-page page-width">
-        <StatusMessage>{error || 'Workout could not be loaded.'}</StatusMessage>
-        <Link className="text-link" to="/workouts">Back to workouts <span aria-hidden="true">→</span></Link>
+        <StatusMessage>{error || `${mode === 'template' ? 'Template' : 'Workout'} could not be loaded.`}</StatusMessage>
+        <Link className="text-link" to={mode === 'template' ? '/templates' : '/workouts'}>Back to {mode === 'template' ? 'templates' : 'workouts'} <span aria-hidden="true">→</span></Link>
       </section>
     );
   }
@@ -135,11 +193,11 @@ export default function WorkoutEditorPage() {
     <section className="app-page page-width editor-page">
       <div className="app-page-heading">
         <div>
-          <span className="eyebrow">{editing ? 'EDIT YOUR PLAN' : 'NEW WORKOUT'}</span>
-          <h1>{editing ? 'Refine the plan.' : <>Build your<br /><span>blueprint.</span></>}</h1>
-          <p>Set your exercise order, targets, and recovery time.</p>
+          <span className="eyebrow">{mode === 'template' ? 'REUSABLE PLAN TEMPLATE' : editing ? 'EDIT YOUR PLAN' : 'NEW WORKOUT'}</span>
+          <h1>{editing ? 'Refine the plan.' : mode === 'template' ? <>Save a starting<br /><span>blueprint.</span></> : <>Build your<br /><span>blueprint.</span></>}</h1>
+          <p>Set the workout details, exercise order, training targets, and recovery time.</p>
         </div>
-        <Link className="text-link" to={editing ? `/workouts/${workoutId}` : '/workouts'}>Cancel <span aria-hidden="true">→</span></Link>
+        <Link className="text-link" to={editing ? (mode === 'template' ? '/templates' : `/workouts/${recordId}`) : (mode === 'template' ? '/templates' : '/workouts')}>Cancel <span aria-hidden="true">→</span></Link>
       </div>
       <StatusMessage>{error}</StatusMessage>
       <form className="editor-form" onSubmit={saveWorkout}>
@@ -153,18 +211,42 @@ export default function WorkoutEditorPage() {
             Description <span className="optional-label">Optional</span>
             <textarea name="description" value={form.description} onChange={updateWorkoutField} maxLength={1000} rows={3} placeholder="What is this session focused on?" />
           </label>
+          <div className="form-grid">
+            <label className="field-label">Category
+              <select name="category" value={form.category} onChange={updateWorkoutField}>
+                <option value="custom">Custom</option><option value="strength">Strength</option><option value="hypertrophy">Hypertrophy</option>
+                <option value="conditioning">Conditioning</option><option value="mobility">Mobility</option>
+              </select>
+            </label>
+            <label className="field-label">Difficulty
+              <select name="difficulty" value={form.difficulty} onChange={updateWorkoutField}>
+                <option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
+              </select>
+            </label>
+            <label className="field-label">Estimated duration (minutes)
+              <input name="durationMinutes" type="number" value={form.durationMinutes} onChange={updateWorkoutField} required min={1} max={600} step={1} />
+            </label>
+          </div>
         </section>
 
         <div className="section-title-row exercise-editor-heading">
           <div><span className="eyebrow">THE MOVEMENTS</span><h2>Exercises <span className="count-pill">{form.exercises.length}</span></h2></div>
-          <button className="button button-outline" type="button" onClick={addExercise}>Add exercise <span aria-hidden="true">+</span></button>
+          <div className="exercise-add-actions">
+            <button className="button button-outline" type="button" onClick={() => setPickerOpen((open) => !open)}>{pickerOpen ? 'Close library' : 'Browse library'} <span aria-hidden="true">⌕</span></button>
+            <button className="button button-outline" type="button" onClick={addExercise}>Add custom <span aria-hidden="true">+</span></button>
+          </div>
         </div>
 
+        {pickerOpen && <ExerciseBrowser onSelect={selectLibraryExercise} onClose={() => setPickerOpen(false)} />}
         {form.exercises.map((exercise, index) => (
           <section className="form-panel exercise-editor-card" key={index}>
             <div className="exercise-editor-title">
               <span className="feature-number">EXERCISE {String(index + 1).padStart(2, '0')}</span>
-              <button className="subtle-link danger-link" type="button" onClick={() => removeExercise(index)} aria-label={`Remove exercise ${index + 1}`}>Remove</button>
+              <div className="exercise-order-actions">
+                <button className="subtle-link" type="button" onClick={() => moveExercise(index, -1)} disabled={index === 0} aria-label={`Move exercise ${index + 1} up`}>↑</button>
+                <button className="subtle-link" type="button" onClick={() => moveExercise(index, 1)} disabled={index === form.exercises.length - 1} aria-label={`Move exercise ${index + 1} down`}>↓</button>
+                <button className="subtle-link danger-link" type="button" onClick={() => removeExercise(index)} aria-label={`Remove exercise ${index + 1}`}>Remove</button>
+              </div>
             </div>
             <div className="form-grid">
               <label className="field-label field-span-two">
@@ -202,8 +284,8 @@ export default function WorkoutEditorPage() {
 
         {!form.exercises.length && <div className="empty-state"><p>No exercises added. You can save the plan and edit it later.</p></div>}
         <div className="form-footer">
-          <button className="button" type="submit" disabled={saving}>{saving ? 'Saving workout…' : 'Save workout'} <span aria-hidden="true">↗</span></button>
-          <span>Your workout is saved to your account.</span>
+          <button className="button" type="submit" disabled={saving}>{saving ? 'Saving…' : mode === 'template' ? 'Save template' : 'Save workout'} <span aria-hidden="true">↗</span></button>
+          <span>{mode === 'template' ? 'This template is saved to your account.' : 'Your workout is saved to your account.'}</span>
         </div>
       </form>
     </section>

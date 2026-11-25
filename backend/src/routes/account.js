@@ -7,6 +7,7 @@ import { comparePassword, hashPassword } from '../utils/password.js';
 import Exercise from '../models/Exercise.js';
 import ExerciseSet from '../models/ExerciseSet.js';
 import ProgressRecord from '../models/ProgressRecord.js';
+import PersonalGoal from '../models/PersonalGoal.js';
 import RevokedToken from '../models/RevokedToken.js';
 import User from '../models/User.js';
 import WorkoutSession from '../models/WorkoutSession.js';
@@ -90,6 +91,7 @@ router.delete(
         await WorkoutSession.deleteMany({ user: user._id }, { session });
         await WorkoutTemplate.deleteMany({ user: user._id }, { session });
         await ProgressRecord.deleteMany({ user: user._id }, { session });
+        await PersonalGoal.deleteMany({ user: user._id }, { session });
         await Exercise.deleteMany({ createdBy: user._id, isCustom: true }, { session });
         await RevokedToken.deleteMany({ user: user._id }, { session });
         await User.deleteOne({ _id: user._id }, { session });

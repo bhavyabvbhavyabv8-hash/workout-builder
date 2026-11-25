@@ -11,6 +11,8 @@ import WorkoutDetailPage from './pages/WorkoutDetailPage.jsx';
 import WorkoutEditorPage from './pages/WorkoutEditorPage.jsx';
 import ProgressPage from './pages/ProgressPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
+import ExerciseLibraryPage from './pages/ExerciseLibraryPage.jsx';
+import TemplateLibraryPage from './pages/TemplateLibraryPage.jsx';
 
 export default function App() {
   return (
@@ -25,6 +27,10 @@ export default function App() {
           <Route path="workouts/new" element={<WorkoutEditorPage />} />
           <Route path="workouts/:workoutId" element={<WorkoutDetailPage />} />
           <Route path="workouts/:workoutId/edit" element={<WorkoutEditorPage />} />
+          <Route path="exercises" element={<ExerciseLibraryPage />} />
+          <Route path="templates" element={<TemplateLibraryPage />} />
+          <Route path="templates/new" element={<WorkoutEditorPage mode="template" />} />
+          <Route path="templates/:templateId/edit" element={<WorkoutEditorPage mode="template" />} />
           <Route path="sessions/:sessionId" element={<ActiveWorkoutPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="progress" element={<ProgressPage />} />

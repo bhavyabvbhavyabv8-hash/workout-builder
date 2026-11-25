@@ -33,6 +33,17 @@ export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler;
 }
 
+function addQuery(path, values = {}) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && value !== null && value !== '') {
+      query.set(key, String(value));
+    }
+  }
+  const encoded = query.toString();
+  return encoded ? `${path}?${encoded}` : path;
+}
+
 export async function apiRequest(path, { method = 'GET', body, signal } = {}) {
   const token = getAuthToken();
   const headers = { Accept: 'application/json' };
@@ -104,7 +115,31 @@ export const workoutApi = {
   update: (id, body) => apiRequest(`/workouts/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
   delete: (id) => apiRequest(`/workouts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   stats: () => apiRequest('/workouts/stats'),
-  progress: () => apiRequest('/workouts/progress')
+  progress: (filters) => apiRequest(addQuery('/workouts/progress', filters)),
+  saveAsTemplate: (id, body = {}) =>
+    apiRequest(`/workouts/${encodeURIComponent(id)}/template`, { method: 'POST', body })
+};
+
+export const exerciseApi = {
+  list: (filters = {}) => apiRequest(addQuery('/workouts/exercises', filters)),
+  create: (body) => apiRequest('/workouts/exercises', { method: 'POST', body })
+};
+
+export const templateApi = {
+  list: () => apiRequest('/workouts/templates'),
+  get: (id) => apiRequest(`/workouts/templates/${encodeURIComponent(id)}`),
+  create: (body) => apiRequest('/workouts/templates', { method: 'POST', body }),
+  update: (id, body) =>
+    apiRequest(`/workouts/templates/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
+  delete: (id) => apiRequest(`/workouts/templates/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  use: (id) => apiRequest(`/workouts/templates/${encodeURIComponent(id)}/use`, { method: 'POST', body: {} })
+};
+
+export const goalApi = {
+  get: () => apiRequest('/goals'),
+  create: (body) => apiRequest('/goals', { method: 'POST', body }),
+  update: (body) => apiRequest('/goals', { method: 'PATCH', body }),
+  delete: () => apiRequest('/goals', { method: 'DELETE', body: {} })
 };
 
 export const sessionApi = {

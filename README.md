@@ -14,8 +14,10 @@ A full-stack workout planning and progressive-overload logging application. User
 
 - Account registration, login/logout, profile editing, password changes, and account deletion.
 - Private workout templates with exercise targets, notes, rest, and duration.
+- Searchable exercise library with muscle, equipment, and difficulty filters; includes personal custom exercises.
+- Reusable built-in and personal workout templates, plus personal weekly and total-workout goals.
 - Live workout execution with per-set persistence, a rest timer, and session completion.
-- Paginated completed-workout history and exercise-performance/weekly-frequency summaries.
+- Paginated completed-workout history, date/exercise-filtered performance charts, personal records, weekly frequency, streaks, and session-duration statistics.
 - Responsive dark interface, loading and error states, and empty states based on real database records.
 
 ## Project structure
@@ -83,6 +85,8 @@ npm run dev
 - Health: `GET /api/health`
 
 The health endpoint remains available if MongoDB is not connected. Authenticated/data endpoints return `503 database_unavailable` until `MONGODB_URI` points to a running database.
+
+On API startup, the backend idempotently seeds the exercise library and six built-in workout templates. It also migrates legacy workout documents to the new workout/template discriminator without removing existing user data. Personal templates, goals, workouts, and sessions are stored in MongoDB.
 
 Run backend integration tests with `npm test`. Tests start an isolated MongoDB replica set in memory.
 
