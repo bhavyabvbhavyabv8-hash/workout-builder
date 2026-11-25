@@ -10,6 +10,8 @@ try {
     console.info(`[server] API listening on port ${port}.`);
   });
 } catch (error) {
-  console.error('[server] Failed to start:', error);
+  console.error(
+    `[server] Failed to start (${error.name || 'Error'}). Check environment configuration and database availability.`
+  );
   process.exitCode = 1;
 }

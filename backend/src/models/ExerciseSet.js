@@ -4,15 +4,19 @@ const exerciseSetSchema = new mongoose.Schema(
   {
     session: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkoutSession', required: true },
     exercise: { type: mongoose.Schema.Types.ObjectId, ref: 'Exercise', required: true },
+    exerciseName: { type: String, required: true, trim: true, maxlength: 100 },
     setNumber: { type: Number, required: true, min: 1 },
     reps: { type: Number, required: true, min: 0, max: 1000 },
     weight: { type: Number, required: true, min: 0 },
     rir: { type: Number, min: 0, max: 10 },
+    durationSeconds: { type: Number, min: 0, max: 86400 },
+    notes: { type: String, trim: true, maxlength: 1000 },
     completedAt: { type: Date, default: Date.now }
   },
   { timestamps: true }
 );
 
 exerciseSetSchema.index({ session: 1, exercise: 1, setNumber: 1 }, { unique: true });
+exerciseSetSchema.index({ session: 1, completedAt: 1 });
 
 export default mongoose.model('ExerciseSet', exerciseSetSchema);
