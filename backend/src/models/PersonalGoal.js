@@ -12,3 +12,4 @@ const personalGoalSchema = new mongoose.Schema(
 personalGoalSchema.index({ user: 1 }, { unique: true });
 
 export default mongoose.model('PersonalGoal', personalGoalSchema);
+ 

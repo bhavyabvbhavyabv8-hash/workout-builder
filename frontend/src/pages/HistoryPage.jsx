@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import LoadingState from '../components/LoadingState.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { formatApiError, sessionApi } from '../services/api.js';
+import formatDuration from '../utils/formatDuration.js';
 
 const PAGE_SIZE = 10;
 
@@ -51,7 +52,12 @@ export default function HistoryPage() {
               <Link className="history-card" to={`/sessions/${session._id}`} key={session._id}>
                 <span className="history-date"><strong>{new Date(session.completedAt).toLocaleDateString(undefined, { day: '2-digit' })}</strong><small>{new Date(session.completedAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</small></span>
                 <span className="history-copy"><strong>{session.name}</strong><small>Started {new Date(session.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small></span>
-                <span className="history-exercises">{session.plannedExercises.length} exercises</span>
+                <span className="history-exercises">
+                  <strong>{formatDuration(session.durationSeconds)}</strong>
+                  <small title={session.exerciseNames.join(' · ')}>
+                    {session.exerciseNames.join(' · ') || 'No exercises recorded'}
+                  </small>
+                </span>
                 <span className="history-arrow" aria-hidden="true">↗</span>
               </Link>
             ))}

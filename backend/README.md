@@ -103,7 +103,7 @@ Validation errors return `400`; invalid credentials/tokens return `401`; cross-u
 | `POST` | `/api/workouts/:workoutId/exercises` | Yes | Add an exercise to a template. |
 | `PATCH` | `/api/workouts/:workoutId/exercises/:exerciseId` | Yes | Update an exercise entry. |
 | `DELETE` | `/api/workouts/:workoutId/exercises/:exerciseId` | Yes | Remove an exercise entry. |
-| `GET` | `/api/workouts/stats` | Yes | Completion counts/rate, weekly frequency, duration, sets, reps, volume, streak, and personal records. |
+| `GET` | `/api/workouts/stats` | Yes | Completion counts/rate, weekly and six-month activity, duration, sets, reps, volume, streak, and personal records. |
 | `GET` | `/api/workouts/progress?from=YYYY-MM-DD&to=YYYY-MM-DD&exerciseId=<id>` | Yes | Filtered per-exercise weight, reps, volume, and set history from completed workouts. |
 | `GET` | `/api/goals` | Yes | Get the user's weekly and total workout targets with actual progress. |
 | `POST` | `/api/goals` | Yes | Create the user's targets. |
@@ -111,7 +111,7 @@ Validation errors return `400`; invalid credentials/tokens return `401`; cross-u
 | `DELETE` | `/api/goals` | Yes | Delete the user's targets. |
 | `POST` | `/api/workouts/sessions` | Yes | Start a session from a template or a custom name. |
 | `GET` | `/api/workouts/sessions?page=1&limit=20` | Yes | Paginated session list, including in-progress sessions. |
-| `GET` | `/api/workouts/sessions/history?page=1&limit=20` | Yes | Paginated completed workout history. |
+| `GET` | `/api/workouts/sessions/history?page=1&limit=20` | Yes | Paginated completed sessions with calculated duration and exercise names. |
 | `GET` | `/api/workouts/sessions/:sessionId` | Yes | Get an own session and its logged sets. |
 | `POST` | `/api/workouts/sessions/:sessionId/sets` | Yes | Record one completed exercise set. |
 | `PATCH` | `/api/workouts/sessions/:sessionId/complete` | Yes | Complete a session after at least one set is logged. |

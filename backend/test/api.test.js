@@ -418,6 +418,16 @@ test('authentication, account security, workout CRUD, history, and user isolatio
     token: ownerAuth.token
   });
   assert.equal(history.payload.data.total, 1);
+  assert.ok(history.payload.data.sessions[0].durationSeconds >= 75);
+  assert.deepEqual(history.payload.data.sessions[0].exerciseNames, ['Barbell bench press']);
+  const privateHistory = await request('GET', '/api/workouts/sessions/history', {
+    token: otherAuth.token
+  });
+  assert.equal(privateHistory.payload.data.total, 0);
+  const invalidHistoryQuery = await request('GET', '/api/workouts/sessions/history?page=0', {
+    token: ownerAuth.token
+  });
+  assert.equal(invalidHistoryQuery.status, 400);
 
   const historyDetails = await request('GET', `/api/workouts/sessions/${sessionId}`, {
     token: ownerAuth.token
@@ -435,6 +445,8 @@ test('authentication, account security, workout CRUD, history, and user isolatio
   assert.equal(stats.payload.data.personalRecords[0].maxWeight, 60);
   assert.equal(stats.payload.data.workoutsThisWeek, 1);
   assert.equal(stats.payload.data.weeklyFrequency.length, 8);
+  assert.equal(stats.payload.data.monthlyActivity.length, 6);
+  assert.equal(stats.payload.data.monthlyActivity.at(-1).workouts, 1);
   assert.equal(stats.payload.data.workoutsStarted, 1);
   assert.equal(stats.payload.data.completionRatePercent, 100);
 

@@ -113,6 +113,28 @@ export default function ProgressPage() {
       </section>
 
       <section className="progress-section">
+        <div className="section-title-row"><div><span className="eyebrow">MONTHLY ACTIVITY</span><h2>Training by month</h2></div><span className="chart-caption">Completed sessions · last 6 months</span></div>
+        {(data?.stats.monthlyActivity || []).some((month) => month.workouts > 0) ? (
+          <div className="weekly-chart monthly-chart" role="img" aria-label="Completed workouts by month over the last six months">
+            {data.stats.monthlyActivity.map((month) => {
+              const maxCount = Math.max(1, ...data.stats.monthlyActivity.map((entry) => entry.workouts));
+              const height = month.workouts ? Math.max(8, (month.workouts / maxCount) * 100) : 0;
+              const date = new Date(`${month.monthStart}T12:00:00Z`);
+              return (
+                <div className="weekly-bar-column" key={month.monthStart} aria-label={`${date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}: ${month.workouts} workouts`}>
+                  <span className="bar-value">{month.workouts || ''}</span>
+                  <div className="weekly-bar-track"><div className="weekly-bar" style={{ height: `${height}%` }} /></div>
+                  <span className="bar-label">{date.toLocaleDateString(undefined, { month: 'short' })}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty-state"><strong>No monthly activity yet</strong><p>Complete a workout session and your monthly activity will appear here.</p></div>
+        )}
+      </section>
+
+      <section className="progress-section">
         <div className="section-title-row"><div><span className="eyebrow">PERSONAL RECORDS</span><h2>Best logged efforts</h2></div></div>
         {data?.stats.personalRecords.length ? (
           <div className="record-list">

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import LoadingState from '../components/LoadingState.jsx';
 import StatusMessage from '../components/StatusMessage.jsx';
 import { formatApiError, sessionApi } from '../services/api.js';
+import formatDuration from '../utils/formatDuration.js';
 
 export default function ActiveWorkoutPage() {
   const { sessionId } = useParams();
@@ -116,6 +117,14 @@ export default function ActiveWorkoutPage() {
   }
 
   const plannedExercises = session.plannedExercises || [];
+  const completedDurationSeconds = session.completedAt
+    ? Math.max(
+        0,
+        Math.floor(
+          (new Date(session.completedAt).getTime() - new Date(session.startedAt).getTime()) / 1000
+        )
+      )
+    : 0;
   const allTargetsReached = plannedExercises.length > 0 && plannedExercises.every((planned) =>
     sets.filter((set) => set.exerciseName.toLowerCase() === planned.name.toLowerCase()).length >= planned.sets
   );
@@ -137,6 +146,7 @@ export default function ActiveWorkoutPage() {
       <div className="session-progress">
         <span><strong>{loggedCount}</strong> sets recorded</span>
         <span>{plannedExercises.length} exercises planned</span>
+        {sessionCompleted && <span>Duration <strong>{formatDuration(completedDurationSeconds)}</strong></span>}
         {sessionCompleted && <strong className="complete-label">Completed {new Date(session.completedAt).toLocaleString()}</strong>}
       </div>
 

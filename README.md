@@ -17,7 +17,7 @@ A full-stack workout planning and progressive-overload logging application. User
 - Searchable exercise library with muscle, equipment, and difficulty filters; includes personal custom exercises.
 - Reusable built-in and personal workout templates, plus personal weekly and total-workout goals.
 - Live workout execution with per-set persistence, a rest timer, and session completion.
-- Paginated completed-workout history, date/exercise-filtered performance charts, personal records, weekly frequency, streaks, and session-duration statistics.
+- Paginated completed-workout history with exercise summaries and duration, date/exercise-filtered performance charts, personal records, weekly/monthly activity, streaks, and session-duration statistics.
 - Responsive dark interface, loading and error states, and empty states based on real database records.
 
 ## Project structure

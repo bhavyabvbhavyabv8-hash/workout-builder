@@ -102,7 +102,34 @@ router.get(
       WorkoutSession.countDocuments(filter)
     ]);
 
-    res.json({ data: { sessions, page, limit, total } });
+    const setSummaries = await ExerciseSet.aggregate([
+      { $match: { session: { $in: sessions.map((session) => session._id) } } },
+      {
+        $group: {
+          _id: '$session',
+          exerciseNames: { $addToSet: '$exerciseName' }
+        }
+      }
+    ]);
+    const exerciseNamesBySession = new Map(
+      setSummaries.map((summary) => [String(summary._id), summary.exerciseNames])
+    );
+    const history = sessions.map((session) => {
+      const exerciseNames = new Set([
+        ...session.plannedExercises.map((exercise) => exercise.name),
+        ...(exerciseNamesBySession.get(String(session._id)) || [])
+      ]);
+      return {
+        ...session,
+        durationSeconds: Math.max(
+          0,
+          Math.floor((session.completedAt.getTime() - session.startedAt.getTime()) / 1000)
+        ),
+        exerciseNames: [...exerciseNames]
+      };
+    });
+
+    res.json({ data: { sessions: history, page, limit, total } });
   })
 );
 

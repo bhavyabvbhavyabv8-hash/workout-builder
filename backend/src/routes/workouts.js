@@ -239,6 +239,9 @@ router.get(
     const frequencyStart = new Date(weekStart);
     frequencyStart.setUTCDate(frequencyStart.getUTCDate() - 7 * 7);
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthlyFrequencyStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1)
+    );
 
     const filter = { user: req.authUser._id, completedAt: { $ne: null } };
     const [
@@ -247,6 +250,7 @@ router.get(
       workoutsThisWeek,
       workoutsThisMonth,
       weeklyCounts,
+      monthlyCounts,
       volumeResult,
       durationResult,
       recordResults,
@@ -271,6 +275,27 @@ router.get(
                   date: '$startedAt',
                   unit: 'week',
                   startOfWeek: 'monday',
+                  timezone: 'UTC'
+                }
+              },
+              workouts: { $sum: 1 }
+            }
+          }
+        ]),
+        WorkoutSession.aggregate([
+          {
+            $match: {
+              user: new mongoose.Types.ObjectId(String(req.authUser._id)),
+              completedAt: { $ne: null },
+              startedAt: { $gte: monthlyFrequencyStart }
+            }
+          },
+          {
+            $group: {
+              _id: {
+                $dateTrunc: {
+                  date: '$startedAt',
+                  unit: 'month',
                   timezone: 'UTC'
                 }
               },
@@ -372,6 +397,19 @@ router.get(
         workouts: frequencyByWeek.get(weekStartDate) || 0
       });
     }
+    const frequencyByMonth = new Map(
+      monthlyCounts.map((entry) => [entry._id.toISOString().slice(0, 10), entry.workouts])
+    );
+    const monthlyActivity = Array.from({ length: 6 }, (_, offset) => {
+      const start = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5 + offset, 1)
+      );
+      const monthStartDate = start.toISOString().slice(0, 10);
+      return {
+        monthStart: monthStartDate,
+        workouts: frequencyByMonth.get(monthStartDate) || 0
+      };
+    });
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
@@ -416,7 +454,8 @@ router.get(
           maxWeight: record.maxWeight,
           maxReps: record.maxReps
         })),
-        weeklyFrequency
+        weeklyFrequency,
+        monthlyActivity
       }
     });
   })
